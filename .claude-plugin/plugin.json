@@ -1,0 +1,8 @@
+{
+  "name": "tool-gate",
+  "version": "0.1.0",
+  "description": "pi-tool-gate's directory policy for Claude Code: calls that read or write outside the project's directories are put to you.",
+  "author": { "name": "Spencer Boucher" },
+  "repository": "https://github.com/justmytwospence/claude-tool-gate",
+  "license": "MIT"
+}
