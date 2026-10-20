@@ -27,6 +27,8 @@ It is pi-tool-gate's, from the same files:
 - The project, meaning the git checkout plus the main checkout of a worktree, is readable and writable.
 - Private roots (`~/Projects`, `~/Documents`, `~/Desktop`, `~/Downloads`, iCloud Drive) are neither read nor written outside the project and its grants.
 - Other paths can be read. They can be written only in temp and cache directories (`alwaysWrite`) or a `write` grant.
+- `derived` paths are generated from a source elsewhere. A write to one outside the project is held even under a grant, and the reason carries the entry's `hint` word for word, pointing at the source.
+- `exemptCommands` (a program and its leading words, `make install`) name no paths: the command that regenerates derived paths runs without a hold. Redirects and other commands in the same line are still checked.
 
 Settings are `directories` in `~/.config/agents/tool-gate.json` (under `$XDG_CONFIG_HOME` when set), then the project's `.agents/tool-gate.json` and `.claude/tool-gate.json`. Later files win key by key, and they are read on every call:
 

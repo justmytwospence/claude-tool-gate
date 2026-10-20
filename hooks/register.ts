@@ -38,9 +38,9 @@ const FILE_TOOLS: Record<string, { key: string; access: 'read' | 'write' }> = {
 type Access = { reads: string[]; writes: string[] }
 
 /** What a call reads and writes, or undefined for a tool the policy does not cover. */
-export function accessOf(tool: string, input: unknown, cwd: string): Access | undefined {
+export function accessOf(tool: string, input: unknown, cwd: string, exempt: readonly string[] = []): Access | undefined {
   const args = (input && typeof input === 'object' ? input : {}) as Record<string, unknown>
-  if (tool === 'Bash') return bashPathAccess(typeof args.command === 'string' ? args.command : '', cwd)
+  if (tool === 'Bash') return bashPathAccess(typeof args.command === 'string' ? args.command : '', cwd, [], exempt)
   const spec = FILE_TOOLS[tool]
   if (!spec) return undefined
   const raw = typeof args[spec.key] === 'string' && args[spec.key] ? (args[spec.key] as string) : '.'
@@ -67,7 +67,10 @@ export function holds(policy: Policy, access: Access, granted: ReadonlySet<strin
 }
 
 function reasonsOf(found: readonly Violation[]): string[] {
-  return [...new Set(found.map((v) => `${v.access === 'write' ? 'writes' : 'reads'} ${shown(v.file)}`))]
+  return [...new Set(found.map((v) =>
+    v.hint !== undefined
+      ? `writes ${shown(v.file)}, a derived path (generated from a source elsewhere). ${v.hint || 'Edit its source instead.'}`
+      : `${v.access === 'write' ? 'writes' : 'reads'} ${shown(v.file)}, outside this project's directories`))]
 }
 
 /** How a held call is settled in a permission mode: Claude Code's dialog, the mod's own question, or not held. */
@@ -140,13 +143,13 @@ export function register(on: On): void {
     const verdict = await next(e)
     // An ask is held too: in auto mode the classifier, not you, would settle it.
     if (verdict.decision === 'deny') return verdict
-    const access = accessOf(e.tool, e.input, where.cwd)
-    if (!access) return verdict
     const p = await currentPolicy($).catch(() => undefined)
     if (!p) return verdict
+    const access = accessOf(e.tool, e.input, where.cwd, p.exempt)
+    if (!access) return verdict
     const held = () => violations(p, access).filter((v) => !granted.has(grantKey(v)))
     if (!held().length) return verdict
-    const why = (found: readonly Violation[]) => `tool-gate: this call ${reasonsOf(found).join('; ')}, outside this project's directories (/tool-gate).`
+    const why = (found: readonly Violation[]) => `tool-gate: this call ${reasonsOf(found).join('; ')} (/tool-gate).`
     switch (settleBy(where.mode, where.interactive)) {
       case 'run':
         return verdict
