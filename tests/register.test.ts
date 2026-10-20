@@ -2,7 +2,7 @@ import { expect, test } from 'claude-code/testing'
 
 import { DEFAULT_DIRECTORIES, resolvePolicy } from '../hooks/core/dirs'
 import { setEnv } from '../hooks/core/path'
-import { accessOf, holds, mergeDirectories } from '../hooks/register'
+import { accessOf, holds, mergeDirectories, settleBy } from '../hooks/register'
 
 setEnv({ home: '/Users/me', tmpdir: '/var/folders/x/T' })
 const app = '/Users/me/Projects/app'
@@ -32,4 +32,21 @@ test('grants from settings files: later files win key by key, invalid ones are s
   const p = resolvePolicy(merged, [app])
   expect(holds(p, { reads: ['/Users/me/Projects/other/a'], writes: ['/Users/me/dotfiles/x'] })).toEqual([])
   expect(holds(p, { reads: [], writes: ['/Users/me/Projects/other/a'] })).toEqual(['writes ~/Projects/other/a'])
+})
+
+test('a held call is settled by the mode: the dialog, its own question in auto mode, deny with no one there, run in bypass', () => {
+  expect(settleBy('default', true)).toBe('dialog')
+  expect(settleBy('acceptEdits', true)).toBe('dialog')
+  expect(settleBy('auto', true)).toBe('question')
+  expect(settleBy(undefined, true)).toBe('question')
+  expect(settleBy('auto', false)).toBe('deny')
+  expect(settleBy('default', false)).toBe('deny')
+  expect(settleBy('bypassPermissions', false)).toBe('run')
+})
+
+test('a folder allowed for the session is no longer held', () => {
+  const p = policy()
+  const access = { reads: ['/Users/me/Projects/other/a'], writes: [] }
+  expect(holds(p, access, new Set(['dir:read:/Users/me/Projects/other']))).toEqual([])
+  expect(holds(p, { reads: [], writes: ['/Users/me/Projects/other/a'] }, new Set(['dir:read:/Users/me/Projects/other']))).toEqual(['writes ~/Projects/other/a'])
 })
