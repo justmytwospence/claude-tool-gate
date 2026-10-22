@@ -33,7 +33,7 @@ It is pi-tool-gate's, from the same files:
 Settings are `directories` in `~/.config/agents/tool-gate.json` (under `$XDG_CONFIG_HOME` when set), then the project's `.agents/tool-gate.json` and `.claude/tool-gate.json`. Later files win key by key, and they are read on every call:
 
 ```json
-{ "directories": { "read": ["*"], "write": ["~/dotfiles", "~/Projects/herdr-*"] } }
+{ "directories": { "read": ["*"], "write": ["~/Projects/dotfiles", "~/Projects/herdr-*"] } }
 ```
 
 `read: ["*"]` reads anywhere. `"enabled": false` turns the policy off. `/tool-gate` shows the policy in force.
